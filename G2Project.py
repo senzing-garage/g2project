@@ -555,7 +555,7 @@ class G2Project:
     def loadJsonProject(self):
         ''' validates and loads a json project file into memory '''
         try:
-            projectData = json.load(open(self.projectFileName), encoding="utf-8")
+            projectData = json.load(open(self.projectFileName, encoding="utf-8"))
         except Exception as err:
             print('ERROR: project file ' + repr(err))
             self.success = False
