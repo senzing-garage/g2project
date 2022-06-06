@@ -1,0 +1,36 @@
+[pylint]
+disable=
+    attribute-defined-outside-init,
+    bare-except,
+    broad-except,
+    consider-using-dict-items,
+    consider-using-enumerate,
+    consider-using-f-string,
+    consider-using-with,
+    import-error,
+    invalid-name,
+    line-too-long,
+    missing-class-docstring,
+    missing-function-docstring,
+    missing-module-docstring,
+    no-else-break,
+    no-else-return,
+    no-self-use,
+    superfluous-parens,
+    too-many-arguments,
+    too-many-branches,
+    too-many-instance-attributes,
+    too-many-locals,
+    too-many-nested-blocks,
+    too-many-statements,
+    trailing-newlines,
+    unidiomatic-typecheck,
+    unspecified-encoding,
+    unused-variable,
+    useless-return,
+good-names=
+    template-python
+ignore=
+    __init__.py,
+notes=
+    FIXME,
