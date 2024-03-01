@@ -9,9 +9,72 @@ import textwrap
 from contextlib import redirect_stdout
 from operator import itemgetter
 
-from CompressedFile import (fileRowParser, isCompressedFile,
-                            openPossiblyCompressedFile)
-from G2S3 import G2S3
+
+
+# ======================
+def fileRowParser(line, fileData, rowNum=0, errors_file=None, errors_short=False, errors_disable=False):
+
+    def write_error(row_num, line, msg='ERROR: Unknown error'):
+        ''' Write error to terminal and file if not disabled '''
+
+        print(f'  ERROR: {msg} {row_num} ({line[:50]})', flush=True)
+
+        if errors_file and not errors_disable:
+            if not errors_short:
+                errors_file.write(f'\n{str(datetime.now())} ERROR: {msg} {rowNum}\n\t{line}\n')
+            else:
+                errors_file.write(f'\n{str(datetime.now())} ERROR: {msg} {rowNum}\n')
+            errors_file.flush()
+
+    line = line.strip()
+
+    if len(line) == 0:
+        print(f'  WARNING: Row {rowNum} is blank')
+        return None
+
+    # Its a JSON string
+    if fileData['FILE_FORMAT'] == 'JSON':
+        try:
+            rowData = json.loads(line)
+        except Exception:
+            write_error(rowNum, line, 'Invalid JSON in row')
+            return None
+
+        return rowData
+
+    # Its a UMF string
+    if fileData['FILE_FORMAT'] == 'UMF':
+        if not (line.upper().startswith('<UMF_DOC') or not line.upper().endswith('/UMF_DOC>')):
+            write_error(rowNum, line, 'Invalid UMF in row')
+            return None
+
+        return line
+
+    # Its a CSV variant
+    else:
+
+        # --handling for multi-character delimiters as csv module does not allow for it
+        try:
+            if fileData['MULTICHAR_DELIMITER']:
+                rowData = [removeQuoteChar(x.strip()) for x in line.split(fileData['DELIMITER'])]
+            else:
+                rowData = [removeQuoteChar(x.strip()) for x in next(csv.reader([line], delimiter=fileData['DELIMITER'], skipinitialspace=True))]
+
+        except Exception:
+            write_error(rowNum, line, 'Row could not be parsed')
+            try:
+                print(line)
+            except Exception:
+                pass
+            return None
+
+        if len(''.join(map(str, rowData)).strip()) == 0:
+            print(f'  WARNING: Row {rowNum} is blank')
+            return ''  # skip rows with no data
+        if 'HEADER_ROW' in fileData:
+            rowData = dict(zip(fileData['HEADER_ROW'], rowData))
+        return rowData
+
 
 
 # ======================
@@ -466,11 +529,6 @@ class G2Project:
                         except ValueError:
                             pass
 
-                    # If looks like a compressed file, strip off the first extension (.gz, .gzip, zip) to locate the real extension (.json, .csv)
-                    if isCompressedFile(fileSpec):
-                        remain_fileSpec, _ = os.path.splitext(fileSpec)
-                        _, fileExtension = os.path.splitext(remain_fileSpec)
-
                     parmDict['FILE_FORMAT'] = fileExtension.replace('.', '').upper()
 
             if parmDict['FILE_FORMAT'] not in ('JSON', 'CSV', 'UMF', 'TAB', 'TSV', 'PIPE', 'GZ', 'GZIP'):
@@ -489,16 +547,12 @@ class G2Project:
                 '''))
                 self.success = False
             else:
-                if G2S3.isS3Uri(fileSpec):
-                    s3list = G2S3.ListOfS3UrisOfFilesInBucket(fileSpec, os.path.dirname(G2S3.getFilePathFromUri(fileSpec)))
-                    fileList = fnmatch.filter(s3list, fileSpec)
-                else:
-                    if fileSpec.upper().startswith('FILE://'):
-                        fileSpec = fileSpec[7:]
-                    try:
-                        fileList = glob.glob(fileSpec)
-                    except:
-                        fileList = []
+                if fileSpec.upper().startswith('FILE://'):
+                    fileSpec = fileSpec[7:]
+                try:
+                    fileList = glob.glob(fileSpec)
+                except:
+                    fileList = []
 
                 if not fileList:
                     print('\nERROR: File specification did not return any files!')
@@ -600,7 +654,7 @@ class G2Project:
 
         fileData['MULTICHAR_DELIMITER'] = False
 
-        csvFile = openPossiblyCompressedFile(self.projectFileName, 'r')
+        csvFile = io.open(self.projectFileName, 'r', encoding='utf-8-sig')
         fileData['HEADER_ROW'] = [x.strip().upper() for x in fileRowParser(next(csvFile), fileData)]
 
         if not(fileData['HEADER_ROW']):
@@ -693,14 +747,7 @@ class G2Project:
 
             # --validate and map the files for this source
             if self.success:
-                if G2S3.isS3Uri(sourceDict['FILE_NAME']):
-                    # --an S3 path so download the file to the temp location
-                    downloader = G2S3(sourceDict['FILE_NAME'], self.tempFolderPath)
-                    downloader.downloadFile()
-                    sourceDict['FILE_PATH'] = downloader.tempFilePath
-                    sourceDict['FILE_NAME'] = downloader.fileName
-                    sourceDict['FILE_SOURCE'] = "S3"
-                elif os.path.exists(sourceDict['FILE_NAME']):
+                if os.path.exists(sourceDict['FILE_NAME']):
                     # --adjustment if they gave us full path as file name
                     sourceDict['FILE_PATH'] = sourceDict['FILE_NAME']
                     sourceDict['FILE_NAME'] = os.path.basename(sourceDict['FILE_PATH'])
@@ -719,7 +766,7 @@ class G2Project:
                     # --test first 100 rows
                     rowCnt = 0
                     badCnt = 0
-                    fileReader = openPossiblyCompressedFile(sourceDict['FILE_PATH'], 'r', sourceDict['ENCODING'])
+                    fileReader = io.open(sourceDict['FILE_PATH'], 'r', sourceDict['ENCODING'])
 
                     # --get header row if csv
                     if sourceDict['FILE_FORMAT'] not in ('JSON', 'UMF'):
