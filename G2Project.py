@@ -531,9 +531,9 @@ class G2Project:
 
                     parmDict['FILE_FORMAT'] = fileExtension.replace('.', '').upper()
 
-            if parmDict['FILE_FORMAT'] not in ('JSON', 'CSV', 'UMF', 'TAB', 'TSV', 'PIPE', 'GZ', 'GZIP'):
+            if parmDict['FILE_FORMAT'] not in ('JSON', 'JSONL', 'CSV', 'UMF', 'TAB', 'TSV', 'PIPE', 'GZ', 'GZIP'):
                 print(textwrap.dedent(f'''\n
-                    ERROR: File format must be one of JSON, CSV, UMF, TAB, TSV, PIPE or specify file_format with the -f argument.
+                    ERROR: File format must be one of JSON, JSONL, CSV, UMF, TAB, TSV, PIPE or specify file_format with the -f argument.
 
                                - ./G2Loader.py -f my_file.csv/?data_source=EXAMPLE
                                - ./G2Loader.py -f my_file.txt/?data_source=EXAMPLE,file_format=CSV
@@ -703,7 +703,7 @@ class G2Project:
             else:
                 sourceDict['FILE_FORMAT'] = sourceDict['FILE_FORMAT'].upper()
 
-            if sourceDict['FILE_FORMAT'] not in ('JSON', 'CSV', 'TSV', 'TAB', 'PIPE', 'UMF'):
+            if sourceDict['FILE_FORMAT'] not in ('JSON', 'JSONL', 'CSV', 'TSV', 'TAB', 'PIPE', 'UMF'):
                 print('ERROR: project file entry ' + str(sourceRow) + ' does not contain a valid file format!')
                 self.success = False
 
@@ -769,7 +769,7 @@ class G2Project:
                     fileReader = io.open(sourceDict['FILE_PATH'], 'r', sourceDict['ENCODING'])
 
                     # --get header row if csv
-                    if sourceDict['FILE_FORMAT'] not in ('JSON', 'UMF'):
+                    if sourceDict['FILE_FORMAT'] not in ('JSON', 'JSONL', 'UMF'):
                         sourceDict['HEADER_ROW'] = [x.strip().upper() for x in fileRowParser(next(fileReader), sourceDict)]
 
                     for row in fileReader:
@@ -919,4 +919,3 @@ class G2Project:
         print(hdrFormat.format(*headerRow2))
         for row in tableData:
             print(rowFormat.format(*row))
-
