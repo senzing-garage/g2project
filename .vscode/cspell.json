@@ -2,26 +2,26 @@
   "version": "0.2",
   "language": "en",
   "words": [
+    "analysing",
     "CCLA",
     "CODEOWNER",
-    "FELEM",
-    "ICLA",
-    "MULTICHAR",
-    "Senzing",
-    "Shuf",
-    "UTYPE",
-    "analysing",
+    "cooldown",
     "dsrc",
     "esbenp",
+    "FELEM",
     "ftype",
+    "ICLA",
+    "kernelsam",
+    "MULTICHAR",
     "pydev",
     "pylint",
     "reclass",
+    "Senzing",
     "shellcheck",
+    "Shuf",
     "sourcedict",
-    "stackoverflow"
+    "stackoverflow",
+    "UTYPE"
   ],
-  "ignorePaths": [
-    ".git/**"
-  ]
+  "ignorePaths": [".git/**"]
 }
